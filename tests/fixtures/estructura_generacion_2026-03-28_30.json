@@ -1,0 +1,119 @@
+{
+ "data": {
+  "type": "Generation structure by technology",
+  "id": "gen1",
+  "attributes": {
+   "title": "Generation structure by technology",
+   "last-update": "2026-11-11T13:33:41.000+01:00",
+   "description": null
+  },
+  "meta": {
+   "cache-control": {
+    "cache": "MISS"
+   }
+  }
+ },
+ "included": [
+  {
+   "type": "Coal",
+   "id": "10289",
+   "groupId": "1",
+   "attributes": {
+    "title": "Coal",
+    "description": null,
+    "color": "#993300",
+    "icon": null,
+    "type": "No-Renovable",
+    "magnitude": null,
+    "composite": false,
+    "last-update": "2026-11-11T13:33:38.000+01:00",
+    "values": [
+     {
+      "value": 0,
+      "percentage": 0,
+      "datetime": "2026-03-28T00:00:00.000+01:00"
+     },
+     {
+      "value": 0,
+      "percentage": 0,
+      "datetime": "2026-03-29T00:00:00.000+01:00"
+     },
+     {
+      "value": 0,
+      "percentage": 0,
+      "datetime": "2026-03-30T00:00:00.000+02:00"
+     },
+     {
+      "value": 0,
+      "percentage": 0,
+      "datetime": "2026-03-31T00:00:00.000+02:00"
+     }
+    ]
+   }
+  },
+  {
+   "type": "Wind",
+   "id": "10291",
+   "groupId": "1",
+   "attributes": {
+    "title": "Wind",
+    "description": null,
+    "color": "#6fb114",
+    "icon": null,
+    "type": "Renovable",
+    "magnitude": null,
+    "composite": false,
+    "last-update": "2026-11-11T13:33:39.000+01:00",
+    "values": [
+     {
+      "value": 256231.81,
+      "percentage": 0.3597706369223552,
+      "datetime": "2026-03-28T00:00:00.000+01:00"
+     },
+     {
+      "value": 239591.00999999995,
+      "percentage": 0.35829566950237324,
+      "datetime": "2026-03-29T00:00:00.000+01:00"
+     },
+     {
+      "value": 246758.49999999997,
+      "percentage": 0.3181088645642502,
+      "datetime": "2026-03-30T00:00:00.000+02:00"
+     }
+    ]
+   }
+  },
+  {
+   "type": "Total generation",
+   "id": "10296",
+   "groupId": "1",
+   "attributes": {
+    "title": "Total generation",
+    "description": null,
+    "color": "#2b2e34",
+    "icon": null,
+    "type": "total",
+    "magnitude": null,
+    "composite": false,
+    "last-update": "2026-11-11T13:33:41.000+01:00",
+    "values": [
+     {
+      "value": 712208.7899999999,
+      "percentage": 1,
+      "datetime": "2026-03-28T00:00:00.000+01:00"
+     },
+     {
+      "value": 668696.3600000001,
+      "percentage": 1,
+      "datetime": "2026-03-29T00:00:00.000+01:00"
+     },
+     {
+      "value": 775704.5700000002,
+      "percentage": 1,
+      "datetime": "2026-03-30T00:00:00.000+02:00"
+     }
+    ]
+   }
+  }
+ ]
+}

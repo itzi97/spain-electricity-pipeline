@@ -1,0 +1,15 @@
+version: 2
+
+sources:
+  - name: raw
+    description: Loaded by ingest/load.py from Red Eléctrica's REData API.
+    schema: raw
+    tables:
+      - name: ree_generation_daily
+        description: One row per technology per day, as REE publishes it. Net generation in MWh.
+        loaded_at_field: updated_at
+        freshness:
+          warn_after: {count: 2, period: day}
+          error_after: {count: 4, period: day}
+      - name: load_runs
+        description: One row per loader run, with how many rows were inserted, revised or unchanged.

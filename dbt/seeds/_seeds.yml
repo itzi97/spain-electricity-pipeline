@@ -1,0 +1,23 @@
+version: 2
+
+seeds:
+  - name: technology_groups
+    description: >
+      Hand-kept mapping from REE technology ids to the groups the dashboard shows.
+      A technology REE starts publishing that is not listed here fails the
+      relationships test on the staging model, so a new source category is noticed
+      instead of silently landing in no group.
+    config:
+      column_types:
+        technology_id: text
+        is_renewable: boolean
+    columns:
+      - name: technology_id
+        data_tests: [unique, not_null]
+      - name: technology_group
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [hydro, nuclear, coal, combined_cycle, wind, solar, cogeneration,
+                         other_renewable, other_non_renewable, total]

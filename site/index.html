@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Spain's electricity mix, day by day</title>
+<meta name="description" content="How much of Spain's electricity came from renewables each day, rebuilt every morning from Red Eléctrica's open data.">
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface-1: #fcfcfb;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #898781;
+    --grid: #e1e0d9;
+    --axis: #c3c2b7;
+    --border: rgba(11,11,11,0.10);
+    --series-1: #2a78d6;
+    --series-2: #eb6834;
+    --series-3: #1baf7a;
+    --series-4: #eda100;
+    --series-5: #e87ba4;
+    --series-other: #c3c2b7;
+    --series-quiet: #c3c2b7;
+  }
+  @media (prefers-color-scheme: dark) {
+    .viz-root {
+      color-scheme: dark;
+      --surface-1: #1a1a19;
+      --text-primary: #f0efec;
+      --text-secondary: #c3c2b7;
+      --text-muted: #898781;
+      --grid: #2c2c2a;
+      --axis: #383835;
+      --border: rgba(255,255,255,0.10);
+      --series-1: #3987e5;
+      --series-2: #d95926;
+      --series-3: #199e70;
+      --series-4: #c98500;
+      --series-5: #d55181;
+      --series-other: #52514e;
+      --series-quiet: #52514e;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f9f9f7; }
+  @media (prefers-color-scheme: dark) { body { background: #0d0d0d; } }
+  .viz-root {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--text-primary);
+    max-width: 980px; margin: 0 auto; padding: 32px 20px 48px;
+    line-height: 1.45;
+  }
+  h1 { font-size: 1.6rem; font-weight: 600; margin: 0 0 6px; }
+  h2 { font-size: 1.05rem; font-weight: 600; margin: 0 0 4px; }
+  .lede { color: var(--text-secondary); margin: 0 0 24px; max-width: 64ch; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .tile, .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; }
+  .tile { padding: 14px 16px; }
+  .tile .label { color: var(--text-secondary); font-size: 0.85rem; }
+  .tile .value { font-size: 1.9rem; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .tile .note { color: var(--text-muted); font-size: 0.78rem; }
+  .card { padding: 16px 16px 10px; margin-bottom: 20px; }
+  .card .sub { color: var(--text-secondary); font-size: 0.85rem; margin: 0 0 10px; }
+  .controls { display: flex; gap: 6px; margin: 0 0 8px; flex-wrap: wrap; }
+  .controls button {
+    font: inherit; font-size: 0.8rem; padding: 4px 10px; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--border); background: transparent; color: var(--text-secondary);
+  }
+  .controls button[aria-pressed="true"] { background: var(--text-primary); color: var(--surface-1); border-color: var(--text-primary); }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 0.8rem; color: var(--text-secondary); margin: 0 0 6px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+  .legend i.line { height: 2px; border-radius: 1px; }
+  .chart { position: relative; }
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+  svg text { font-size: 11px; fill: var(--text-muted); font-variant-numeric: tabular-nums; }
+  svg .end-label { font-size: 12px; fill: var(--text-primary); font-weight: 600; }
+  .tip {
+    position: absolute; pointer-events: none; opacity: 0; transition: opacity .1s;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; font-size: 0.8rem; box-shadow: 0 4px 16px rgba(0,0,0,.12); min-width: 160px; z-index: 2;
+  }
+  .tip .t-head { font-weight: 600; margin-bottom: 4px; }
+  .tip .row { display: flex; justify-content: space-between; gap: 14px; color: var(--text-secondary); }
+  .tip .row b { color: var(--text-primary); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tip i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
+  details { margin-top: 6px; font-size: 0.85rem; color: var(--text-secondary); }
+  details table { border-collapse: collapse; margin-top: 8px; font-variant-numeric: tabular-nums; }
+  details th, details td { padding: 3px 10px 3px 0; text-align: right; border-bottom: 1px solid var(--grid); }
+  details th:first-child, details td:first-child { text-align: left; }
+  footer { color: var(--text-muted); font-size: 0.8rem; }
+  footer a, .lede a { color: var(--text-secondary); }
+  .status-ok::before { content: "✓ "; font-weight: 700; }
+</style>
+</head>
+<body>
+<main class="viz-root">
+  <h1>Spain's electricity mix, day by day</h1>
+  <p class="lede">
+    How much of the electricity generated in Spain came from renewable sources, rebuilt every morning
+    from Red Eléctrica's open data by a small pipeline: Python into PostgreSQL, dbt models and tests,
+    then this page. <a href="https://github.com/itzi97/spain-electricity-pipeline">Source and method on GitHub</a>.
+  </p>
+
+  <section class="tiles" id="tiles" aria-label="Headline figures"></section>
+
+  <section class="card" aria-labelledby="share-title">
+    <h2 id="share-title">Renewable share of generation</h2>
+    <p class="sub">Daily, with the trailing 7-day share (renewable MWh over total MWh across the week).</p>
+    <div class="controls" role="group" aria-label="Time range">
+      <button data-range="90" aria-pressed="false">90 days</button>
+      <button data-range="365" aria-pressed="true">1 year</button>
+      <button data-range="all" aria-pressed="false">All</button>
+    </div>
+    <div class="legend">
+      <span><i class="line" style="background:var(--series-1)"></i>7-day share</span>
+      <span><i class="line" style="background:var(--series-quiet)"></i>Daily share</span>
+    </div>
+    <div class="chart" id="share-chart"><div class="tip" id="share-tip"></div></div>
+    <details><summary>Show as a table (last 30 days)</summary><div id="share-table"></div></details>
+  </section>
+
+  <section class="card" aria-labelledby="mix-title">
+    <h2 id="mix-title">Where it came from, month by month</h2>
+    <p class="sub">Share of each month's net generation, last 24 months.</p>
+    <div class="legend" id="mix-legend"></div>
+    <div class="chart" id="mix-chart"><div class="tip" id="mix-tip"></div></div>
+    <details><summary>Show as a table</summary><div id="mix-table"></div></details>
+  </section>
+
+  <footer id="footer"></footer>
+</main>
+
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+const pct = (v, d = 1) => (v * 100).toFixed(d) + '%';
+const gwh = v => v.toLocaleString('en-GB', { maximumFractionDigits: 0 }) + ' GWh';
+const dayFmt = s => new Date(s + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+const monthFmt = s => new Date(s + 'T12:00:00').toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
+const el = (tag, attrs = {}, parent) => {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+};
+
+// Fixed slot order: the colour follows the group, whatever the range shown.
+const GROUPS = [
+  { key: 'wind', name: 'Wind', color: 'var(--series-1)' },
+  { key: 'solar', name: 'Solar', color: 'var(--series-2)' },
+  { key: 'hydro', name: 'Hydro', color: 'var(--series-3)' },
+  { key: 'nuclear', name: 'Nuclear', color: 'var(--series-4)' },
+  { key: 'combined_cycle', name: 'Combined cycle (gas)', color: 'var(--series-5)' },
+  { key: 'other', name: 'Everything else', color: 'var(--series-other)' },
+];
+
+function tiles(daily) {
+  const last = daily[daily.length - 1];
+  const sumShare = rows => rows.reduce((a, r) => a + r.share * r.total_gwh, 0) / rows.reduce((a, r) => a + r.total_gwh, 0);
+  const year = last.day.slice(0, 4);
+  const ytd = daily.filter(r => r.day.startsWith(year));
+  const items = [
+    { label: 'Latest day', value: pct(last.share), note: `${dayFmt(last.day)} · top source: ${last.top}` },
+    { label: 'Last 30 days', value: pct(sumShare(daily.slice(-30))), note: 'renewable MWh over total MWh' },
+    { label: `${year} so far`, value: pct(sumShare(ytd)), note: `${ytd.length} days` },
+    { label: 'Days in the dataset', value: daily.length.toLocaleString('en-GB'), note: `since ${dayFmt(daily[0].day)}` },
+  ];
+  document.getElementById('tiles').innerHTML = items.map(i =>
+    `<div class="tile"><div class="label">${i.label}</div><div class="value">${i.value}</div><div class="note">${i.note}</div></div>`).join('');
+}
+
+function shareChart(daily, range) {
+  const host = document.getElementById('share-chart');
+  host.querySelector('svg')?.remove();
+  const rows = range === 'all' ? daily : daily.slice(-range);
+  const W = 940, H = 300, m = { t: 12, r: 64, b: 26, l: 40 };
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Line chart of the daily and 7-day renewable share' });
+  host.prepend(svg);
+  const x = i => m.l + (i / (rows.length - 1)) * (W - m.l - m.r);
+  const y = v => m.t + (1 - v) * (H - m.t - m.b);
+  for (const t of [0, 0.25, 0.5, 0.75, 1]) {
+    el('line', { x1: m.l, x2: W - m.r, y1: y(t), y2: y(t), stroke: t === 0 ? 'var(--axis)' : 'var(--grid)', 'stroke-width': 1 }, svg);
+    el('text', { x: m.l - 8, y: y(t) + 4, 'text-anchor': 'end' }, svg).textContent = pct(t, 0);
+  }
+  // x ticks: first day of a month (or quarter, for long ranges)
+  const step = rows.length > 400 ? 3 : rows.length > 120 ? 2 : 1;
+  rows.forEach((r, i) => {
+    const mo = +r.day.slice(5, 7);
+    if (r.day.endsWith('-01') && (mo - 1) % step === 0) {
+      el('text', { x: x(i), y: H - 6, 'text-anchor': 'middle' }, svg).textContent = monthFmt(r.day);
+    }
+  });
+  const path = key => rows.map((r, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(r[key]).toFixed(1)}`).join('');
+  el('path', { d: path('share'), fill: 'none', stroke: 'var(--series-quiet)', 'stroke-width': 1.25, 'stroke-linejoin': 'round' }, svg);
+  el('path', { d: path('share_7d'), fill: 'none', stroke: 'var(--series-1)', 'stroke-width': 2, 'stroke-linejoin': 'round' }, svg);
+  const last = rows[rows.length - 1];
+  el('circle', { cx: x(rows.length - 1), cy: y(last.share_7d), r: 4, fill: 'var(--series-1)', stroke: 'var(--surface-1)', 'stroke-width': 2 }, svg);
+  el('text', { class: 'end-label', x: x(rows.length - 1) + 8, y: y(last.share_7d) + 4 }, svg).textContent = pct(last.share_7d);
+
+  // hover: crosshair + tooltip
+  const cross = el('line', { y1: m.t, y2: H - m.b, stroke: 'var(--axis)', 'stroke-width': 1, opacity: 0 }, svg);
+  const dot = el('circle', { r: 4, fill: 'var(--series-1)', stroke: 'var(--surface-1)', 'stroke-width': 2, opacity: 0 }, svg);
+  const hit = el('rect', { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: 'transparent' }, svg);
+  const tip = document.getElementById('share-tip');
+  const move = ev => {
+    const pt = svg.getBoundingClientRect();
+    const sx = (ev.clientX - pt.left) * (W / pt.width);
+    const i = Math.max(0, Math.min(rows.length - 1, Math.round((sx - m.l) / (W - m.l - m.r) * (rows.length - 1))));
+    const r = rows[i];
+    cross.setAttribute('x1', x(i)); cross.setAttribute('x2', x(i)); cross.setAttribute('opacity', 1);
+    dot.setAttribute('cx', x(i)); dot.setAttribute('cy', y(r.share_7d)); dot.setAttribute('opacity', 1);
+    tip.innerHTML = `<div class="t-head">${dayFmt(r.day)}</div>
+      <div class="row"><span><i style="background:var(--series-1)"></i>7-day share</span><b>${pct(r.share_7d)}</b></div>
+      <div class="row"><span><i style="background:var(--series-quiet)"></i>Daily share</span><b>${pct(r.share)}</b></div>
+      <div class="row"><span>Generated</span><b>${gwh(r.total_gwh)}</b></div>
+      <div class="row"><span>Top source</span><b>${r.top}</b></div>`;
+    const px = x(i) / W * pt.width;
+    tip.style.left = Math.min(px + 14, pt.width - 190) + 'px';
+    tip.style.top = '10px';
+    tip.style.opacity = 1;
+  };
+  hit.addEventListener('pointermove', move);
+  hit.addEventListener('pointerleave', () => { tip.style.opacity = 0; cross.setAttribute('opacity', 0); dot.setAttribute('opacity', 0); });
+
+  document.getElementById('share-table').innerHTML = '<table><tr><th>Day</th><th>Daily</th><th>7-day</th><th>Generated</th><th>Top source</th></tr>' +
+    daily.slice(-30).reverse().map(r => `<tr><td>${dayFmt(r.day)}</td><td>${pct(r.share)}</td><td>${pct(r.share_7d)}</td><td>${gwh(r.total_gwh)}</td><td>${r.top}</td></tr>`).join('') + '</table>';
+}
+
+function mixChart(monthly) {
+  const keyed = new Set(GROUPS.map(g => g.key));
+  const byMonth = new Map();
+  for (const r of monthly) {
+    const k = keyed.has(r.tech_group) ? r.tech_group : 'other';
+    const m = byMonth.get(r.month) || { month: r.month, gwh: {} };
+    m.gwh[k] = (m.gwh[k] || 0) + r.gwh;
+    byMonth.set(r.month, m);
+  }
+  const months = [...byMonth.values()].slice(-24).map(m => {
+    const total = Object.values(m.gwh).reduce((a, b) => a + b, 0);
+    return { ...m, total, share: Object.fromEntries(GROUPS.map(g => [g.key, (m.gwh[g.key] || 0) / total])) };
+  });
+  document.getElementById('mix-legend').innerHTML = GROUPS.map(g => `<span><i style="background:${g.color}"></i>${g.name}</span>`).join('');
+
+  const W = 940, H = 300, m = { t: 12, r: 8, b: 26, l: 40 };
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Stacked columns of each month\'s generation mix' });
+  document.getElementById('mix-chart').prepend(svg);
+  const y = v => m.t + (1 - v) * (H - m.t - m.b);
+  for (const t of [0, 0.25, 0.5, 0.75, 1]) {
+    el('line', { x1: m.l, x2: W - m.r, y1: y(t), y2: y(t), stroke: t === 0 ? 'var(--axis)' : 'var(--grid)', 'stroke-width': 1 }, svg);
+    el('text', { x: m.l - 8, y: y(t) + 4, 'text-anchor': 'end' }, svg).textContent = pct(t, 0);
+  }
+  const slot = (W - m.l - m.r) / months.length, bw = slot - 2; // 2px surface gap between columns
+  const tip = document.getElementById('mix-tip');
+  months.forEach((mo, i) => {
+    const gx = m.l + i * slot + 1;
+    let acc = 0;
+    const g = el('g', {}, svg);
+    GROUPS.forEach(grp => {
+      const s = mo.share[grp.key];
+      if (s <= 0) return;
+      const top = y(acc + s), bottom = y(acc);
+      el('rect', { x: gx, y: top + 1, width: bw, height: Math.max(0, bottom - top - 2), fill: grp.color }, g); // 2px gap between segments
+      acc += s;
+    });
+    if (i % 3 === 0) el('text', { x: gx + bw / 2, y: H - 6, 'text-anchor': 'middle' }, svg).textContent = monthFmt(mo.month);
+    const hit = el('rect', { x: gx - 1, y: m.t, width: slot, height: H - m.t - m.b, fill: 'transparent' }, svg);
+    hit.addEventListener('pointerenter', () => {
+      tip.innerHTML = `<div class="t-head">${new Date(mo.month + 'T12:00:00').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</div>` +
+        [...GROUPS].reverse().map(grp => `<div class="row"><span><i style="background:${grp.color}"></i>${grp.name}</span><b>${pct(mo.share[grp.key])}</b></div>`).join('') +
+        `<div class="row"><span>Total</span><b>${gwh(mo.total)}</b></div>`;
+      const pt = svg.getBoundingClientRect();
+      tip.style.left = Math.min((gx + slot) / W * pt.width + 8, pt.width - 210) + 'px';
+      tip.style.top = '10px';
+      tip.style.opacity = 1;
+      g.style.opacity = 1; svg.querySelectorAll('g').forEach(o => { if (o !== g) o.style.opacity = 0.45; });
+    });
+    hit.addEventListener('pointerleave', () => { tip.style.opacity = 0; svg.querySelectorAll('g').forEach(o => o.style.opacity = 1); });
+  });
+
+  document.getElementById('mix-table').innerHTML = '<table><tr><th>Month</th>' + GROUPS.map(g => `<th>${g.name}</th>`).join('') + '<th>Total</th></tr>' +
+    [...months].reverse().map(mo => `<tr><td>${monthFmt(mo.month)}</td>` + GROUPS.map(g => `<td>${pct(mo.share[g.key])}</td>`).join('') + `<td>${gwh(mo.total)}</td></tr>`).join('') + '</table>';
+}
+
+function footer(meta) {
+  const t = meta.dbt_tests || {};
+  const passed = (t.pass || 0) + (t.warn || 0);
+  const failed = (t.fail || 0) + (t.error || 0);
+  const tests = meta.dbt_tests
+    ? `<span class="${failed ? '' : 'status-ok'}">${passed} dbt tests passed${t.warn ? ` (${t.warn} with a warning)` : ''}${failed ? `, ${failed} failed` : ''}</span> · `
+    : '';
+  const load = meta.last_load
+    ? `last load: ${meta.last_load.rows_received} rows read, ${meta.last_load.rows_inserted} new, ${meta.last_load.rows_updated} revised by REE · `
+    : '';
+  document.getElementById('footer').innerHTML =
+    `<p>${tests}${load}built ${new Date(meta.generated_at).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Madrid' })} (Madrid)</p>
+     <p>Data: ${meta.source}. Net generation, peninsular and non-peninsular systems combined. Figures for recent days are provisional and REE revises them; the pipeline picks up revisions on each run.</p>`;
+}
+
+(async () => {
+  const [daily, monthly, meta] = await Promise.all(['daily', 'monthly', 'meta'].map(n => fetch(`data/${n}.json`).then(r => r.json())));
+  tiles(daily);
+  let range = 365;
+  shareChart(daily, range);
+  document.querySelectorAll('[data-range]').forEach(b => b.addEventListener('click', () => {
+    range = b.dataset.range === 'all' ? 'all' : +b.dataset.range;
+    document.querySelectorAll('[data-range]').forEach(o => o.setAttribute('aria-pressed', o === b));
+    shareChart(daily, range);
+  }));
+  mixChart(monthly);
+  footer(meta);
+})();
+</script>
+</body>
+</html>

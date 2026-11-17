@@ -1,0 +1,35 @@
+version: 2
+
+models:
+  - name: stg_ree__generation_daily
+    description: Daily net generation by technology, one row per technology per day.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            columns: [technology_id, generation_day]
+    columns:
+      - name: technology_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('technology_groups')
+                field: technology_id
+      - name: renewable_class
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['Renovable', 'No-Renovable', 'total']
+      - name: generation_day
+        data_tests: [not_null]
+      - name: net_generation_mwh
+        description: >
+          Net of the plant's own consumption, so it can be slightly negative.
+          Coal has reported small negative days in November 2026.
+        data_tests:
+          - not_null
+          - values_at_least:
+              arguments:
+                minimum: 0
+              config:
+                severity: warn

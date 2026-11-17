@@ -1,0 +1,24 @@
+name: spain_electricity
+version: "1.0.0"
+config-version: 2
+profile: spain_electricity
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  spain_electricity:
+    staging:
+      +materialized: view
+      +schema: staging
+    marts:
+      +materialized: table
+      +schema: marts
+
+seeds:
+  spain_electricity:
+    +schema: reference

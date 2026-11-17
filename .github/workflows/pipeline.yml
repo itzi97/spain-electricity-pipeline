@@ -1,0 +1,88 @@
+name: pipeline
+
+# Every morning: load REE's data into a fresh PostgreSQL, build and test the dbt
+# models, export the marts and publish the dashboard to GitHub Pages.
+# The database lives only for the run; the full history reloads in seconds.
+
+on:
+  schedule:
+    - cron: "17 7 * * *"   # 08:17 Madrid in winter, 09:17 in summer
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pipeline-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: grid
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: grid
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install
+        run: pip install -r requirements.txt
+
+      - name: Unit and loader tests
+        run: pytest -q
+
+      - name: Load REE data since 2023
+        run: python -m ingest.load --start 2023-01-01
+
+      - name: dbt build (models and tests)
+        working-directory: dbt
+        run: dbt build --profiles-dir .
+
+      - name: Source freshness
+        working-directory: dbt
+        run: dbt source freshness --profiles-dir .
+
+      - name: Export marts for the dashboard
+        run: python -m export.export_json --out site/data
+
+      - name: Upload the site
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
