@@ -289,9 +289,11 @@ function footer(meta) {
   const tests = meta.dbt_tests
     ? `<span class="${failed ? '' : 'status-ok'}">${passed} dbt tests passed${t.warn ? ` (${t.warn} with a warning)` : ''}${failed ? `, ${failed} failed` : ''}</span> · `
     : '';
-  const load = meta.last_load
-    ? `last load: ${meta.last_load.rows_received} rows read, ${meta.last_load.rows_inserted} new, ${meta.last_load.rows_updated} revised by REE · `
-    : '';
+  const l = meta.last_load;
+  const load = !l ? ''
+    : l.rows_inserted === l.rows_received
+      ? `${l.rows_received.toLocaleString('en-GB')} rows loaded fresh from REE · `
+      : `last load: ${l.rows_received.toLocaleString('en-GB')} rows read, ${l.rows_inserted} new, ${l.rows_updated} revised by REE · `;
   document.getElementById('footer').innerHTML =
     `<p>${tests}${load}built ${new Date(meta.generated_at).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Madrid' })} (Madrid)</p>
      <p>Data: ${meta.source}. Net generation, peninsular and non-peninsular systems combined. Figures for recent days are provisional and REE revises them; the pipeline picks up revisions on each run.</p>`;
