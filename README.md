@@ -32,7 +32,7 @@ Two ways to run it:
 |---|---|---|
 | Schedule | 08:17 Madrid, daily | 08:17 Madrid, daily |
 | Database | fresh PostgreSQL service per run | persistent warehouse in Docker |
-| Load window | full history since 2023 (about 22,000 rows, seconds) | last 14 days, where REE still revises |
+| Load window | full history since 2023 (about 22,000 rows, a few minutes) | last 14 days, where REE still revises |
 | Output | dashboard on GitHub Pages | `site/data/` on disk |
 
 ## Layers
@@ -76,7 +76,7 @@ publishing if any fails.
 - **Negative net generation warns rather than fails.** See below.
 
 Python tests (`pytest`) cover the client and the loader: splitting ranges by
-calendar year, parsing across the clock change, retrying the API's temporary
+calendar quarter, parsing across the clock change, retrying the API's temporary
 errors, and, against a real PostgreSQL in a throwaway database, that a re-run
 counts new, revised and unchanged rows correctly.
 
@@ -100,6 +100,9 @@ counts new, revised and unchanged rows correctly.
   spring clock change.
 - **Temporary unavailability comes back as HTTP 400**, not 503, so the client
   retries 400s too, with backoff.
+- **A whole uncached year can take over a minute.** The first CI run timed out
+  reading 2023 in one request. The client now asks for one calendar quarter at
+  a time and retries timeouts as well as error codes.
 
 ## Running it
 

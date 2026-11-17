@@ -14,21 +14,29 @@ def load_fixture() -> dict:
     return json.loads(FIXTURE.read_text())
 
 
-def test_year_chunks_split_on_calendar_years():
-    assert ree.year_chunks(date(2023, 11, 1), date(2025, 2, 3)) == [
-        (date(2023, 11, 1), date(2023, 12, 31)),
-        (date(2024, 1, 1), date(2024, 12, 31)),
-        (date(2025, 1, 1), date(2025, 2, 3)),
+def test_quarter_chunks_split_on_calendar_quarters():
+    assert ree.quarter_chunks(date(2024, 11, 15), date(2025, 7, 3)) == [
+        (date(2024, 11, 15), date(2024, 12, 31)),
+        (date(2025, 1, 1), date(2025, 3, 31)),
+        (date(2025, 4, 1), date(2025, 6, 30)),
+        (date(2025, 7, 1), date(2025, 7, 3)),
     ]
 
 
-def test_year_chunks_single_day():
-    assert ree.year_chunks(date(2026, 5, 4), date(2026, 5, 4)) == [(date(2026, 5, 4), date(2026, 5, 4))]
+def test_quarter_chunks_cover_every_day_once():
+    chunks = ree.quarter_chunks(date(2023, 1, 1), date(2026, 11, 16))
+    days = sum((b - a).days + 1 for a, b in chunks)
+    assert days == (date(2026, 11, 16) - date(2023, 1, 1)).days + 1
+    assert all(b.year == a.year for a, b in chunks)
 
 
-def test_year_chunks_reject_reversed_range():
+def test_quarter_chunks_single_day():
+    assert ree.quarter_chunks(date(2026, 5, 4), date(2026, 5, 4)) == [(date(2026, 5, 4), date(2026, 5, 4))]
+
+
+def test_quarter_chunks_reject_reversed_range():
     with pytest.raises(ValueError):
-        ree.year_chunks(date(2026, 5, 4), date(2026, 5, 3))
+        ree.quarter_chunks(date(2026, 5, 4), date(2026, 5, 3))
 
 
 def test_parse_keeps_the_local_day_across_the_clock_change():
@@ -77,7 +85,10 @@ class FakeSession:
 
     def get(self, url, params, timeout):
         self.calls.append(params)
-        return self.responses.pop(0)
+        response = self.responses.pop(0)
+        if isinstance(response, Exception):
+            raise response
+        return response
 
 
 def test_fetch_drops_days_outside_the_requested_range(monkeypatch):
@@ -95,6 +106,14 @@ def test_fetch_retries_the_apis_temporary_400(monkeypatch):
         FakeResponse(400, {"errors": [{"detail": "currently unavailable"}]}),
         FakeResponse(200, load_fixture()),
     ])
+    rows = ree.fetch(date(2026, 3, 28), date(2026, 3, 30), session=session)
+    assert len(session.calls) == 2
+    assert rows
+
+
+def test_fetch_retries_a_read_timeout(monkeypatch):
+    monkeypatch.setattr(ree.time, "sleep", lambda s: None)
+    session = FakeSession([requests.ReadTimeout("slow"), FakeResponse(200, load_fixture())])
     rows = ree.fetch(date(2026, 3, 28), date(2026, 3, 30), session=session)
     assert len(session.calls) == 2
     assert rows

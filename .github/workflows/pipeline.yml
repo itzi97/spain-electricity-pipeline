@@ -2,7 +2,7 @@ name: pipeline
 
 # Every morning: load REE's data into a fresh PostgreSQL, build and test the dbt
 # models, export the marts and publish the dashboard to GitHub Pages.
-# The database lives only for the run; the full history reloads in seconds.
+# The database lives only for the run; reloading the full history takes a few minutes.
 
 on:
   schedule:
