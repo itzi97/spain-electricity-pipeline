@@ -138,7 +138,7 @@ after that the daily run re-reads the last 14 days. The warehouse is on
 ```
 ingest/      REE client, loader and raw schema
 dbt/         staging and mart models, seed, custom generic tests, singular tests
-export/      marts to JSON for the dashboard
+export/      marts to JSON for the dashboard, and the link-preview image
 site/        the dashboard (one HTML file, no build step)
 airflow/     DAG for the local, long-lived version
 tests/       pytest: client and loader

@@ -70,6 +70,12 @@ jobs:
       - name: Export marts for the dashboard
         run: python -m export.export_json --out site/data
 
+      - name: Render the link-preview image
+        run: |
+          pip install playwright==1.65.2
+          python -m playwright install --with-deps chromium
+          python -m export.og_image --site site
+
       - name: Upload the site
         if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v5
