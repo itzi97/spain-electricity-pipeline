@@ -32,7 +32,7 @@ jobs:
           POSTGRES_DB: grid
         ports: ["5432:5432"]
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U postgres"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -62,6 +62,20 @@ jobs:
       - name: dbt build (models and tests)
         working-directory: dbt
         run: dbt build --profiles-dir .
+
+      # When REE starts publishing a technology the seed does not list, the
+      # relationships test fails with only a row count. Name the culprits.
+      - name: List technologies missing from the seed
+        if: failure()
+        run: |
+          psql -c "
+            select r.technology_id, r.technology, r.renewable_class,
+                   min(r.day) as first_day, max(r.day) as last_day, count(*) as days
+            from raw.ree_generation_daily r
+            left join reference.technology_groups g using (technology_id)
+            where g.technology_id is null
+            group by 1, 2, 3
+            order by 1"
 
       - name: Source freshness
         working-directory: dbt
